@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BOP Account</title>
+<style>
+body{font-family:Arial; background:#f4f6f8; margin:0; padding:20px;}
+h2{margin-top:0;}
+input, button{padding:8px; margin:5px 0;}
+table{width:100%; border-collapse:collapse; margin-top:15px;}
+th,td{border:1px solid #ccc; padding:6px; text-align:center;}
+th{background:#eee;}
+</style>
+</head>
+<body>
+<h2>BOP Account - Search by CNIC</h2>
+
+<label>Upload BOP Excel:</label>
+<input type="file" id="bopFile">
+<button onclick="uploadBOP()">Upload</button>
+<button onclick="downloadBOP()">Download Current Excel</button>
+<br><br>
+
+<label>Search by CNIC:</label>
+<input type="text" id="cnicSearch" oninput="searchCNIC()" placeholder="Enter CNIC">
+
+<table id="bopTable">
+<thead>
+<tr>
+<th>Name</th>
+<th>CNIC</th>
+<th>Account No</th>
+<th>Bank BR Code</th>
+<th>Bank BR Name</th>
+</tr>
+</thead>
+<tbody>
+<tr><td colspan="5">No data uploaded</td></tr>
+</tbody>
+</table>
+
+<script>
+let BOP_DATA = [];
+
+// Upload Excel
+function uploadBOP(){
+    let file = document.getElementById("bopFile").files[0];
+    if(!file){ alert("Select file"); return; }
+    let formData = new FormData();
+    formData.append("file", file);
+
+    fetch("/upload_bop", {method:"POST", body:formData})
+    .then(res=>res.json())
+    .then(res=>{
+        if(res.status=="success"){
+            BOP_DATA = res.data;
+            renderTable(BOP_DATA);
+            document.getElementById("cnicSearch").value="";
+        }
+    });
+}
+
+// Render Table
+function renderTable(data){
+    let tbody = document.querySelector("#bopTable tbody");
+    tbody.innerHTML="";
+    if(data.length==0){
+        tbody.innerHTML='<tr><td colspan="5">No data found</td></tr>';
+        return;
+    }
+    data.forEach(r=>{
+        let tr = document.createElement("tr");
+        ["Name","CNIC","Account No","Bank BR Code","Bank BR Name"].forEach(k=>{
+            let td=document.createElement("td");
+            td.textContent=r[k]||"";
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+}
+
+// CNIC Search
+function searchCNIC(){
+    let cnic = document.getElementById("cnicSearch").value.trim();
+    fetch("/search_bop", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({cnic})
+    }).then(res=>res.json())
+      .then(res=>{
+          if(res.status=="success") renderTable(res.data);
+      });
+}
+
+// Download current BOP Excel
+function downloadBOP(){
+    window.location.href="/download_bop_excel";
+}
+</script>
+</body>
+</html>
